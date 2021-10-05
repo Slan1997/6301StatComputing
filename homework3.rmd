@@ -1,0 +1,226 @@
+---
+title: 'Bios 6301: Assignment 3'
+author: "Lan Shi"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+*Due Tuesday, 28 September, 1:00 PM*
+
+50 points total.
+
+Add your name as `author` to the file's metadata section.
+
+Submit a single knitr file (named `homework3.rmd`) by email to michael.l.williams@vanderbilt.edu.
+Place your R code in between the appropriate chunks for each question.
+Check your output by using the `Knit HTML` button in RStudio.
+
+$5^{n=day}$ points taken off for each day late.
+
+### Question 1 ###
+
+**15 points**
+
+Write a simulation to calculate the power for the following study
+design.  The study has two variables, treatment group and outcome.
+There are two treatment groups (0, 1) and they should be assigned
+randomly with equal probability.  The outcome should be a random normal
+variable with a mean of 60 and standard deviation of 20.  If a patient
+is in the treatment group, add 5 to the outcome.  5 is the true
+treatment effect.  Create a linear model for the outcome by the
+treatment group, and extract the p-value (hint: see assigment1).
+Test if the p-value is less than or equal to the alpha level, which
+should be set to 0.05.
+
+Repeat this procedure 1000 times. The power is calculated by finding
+the percentage of times the p-value is less than or equal to the alpha
+level.  Use the `set.seed` command so that the professor can reproduce
+your results.
+
+1. Find the power when the sample size is 100 patients. (10 points)
+
+```{r}
+set.seed(925)
+n = 100
+mean(replicate(1e3, {
+    treat_grp = rbinom(n, 1, 0.5)  # treat_grp = 1, if in treatment group
+    outcome = rnorm(n, mean=60, sd=20)
+    outcome[treat_grp==1] = outcome[treat_grp==1] + 5
+    dt = data.frame(treat_grp,outcome)
+    fit = lm(outcome~treat_grp,dt)
+    #pvalue 
+    coef(summary(fit))[2,4]}) < 0.05)
+```
+
+1. Find the power when the sample size is 1000 patients. (5 points)
+
+```{r}
+set.seed(925)
+n = 1000
+mean(replicate(1e3, {
+    treat_grp = rbinom(n, 1, 0.5)  # treat_grp = 1, if in treatment group
+    outcome = rnorm(n, mean=60, sd=20)
+    outcome[treat_grp==1] = outcome[treat_grp==1] + 5
+    dt = data.frame(treat_grp,outcome)
+    fit = lm(outcome~treat_grp,dt)
+    #pvalue 
+    coef(summary(fit))[2,4]}) < 0.05)
+```
+
+### Question 2 ###
+
+**14 points**
+
+Obtain a copy of the [football-values lecture](https://github.com/couthcommander/football-values).
+Save the `2021/proj_wr21.csv` file in your working directory.  Read
+in the data set and remove the first two columns.
+
+```{r}
+dt = read.csv('~/Desktop/21 FA/6301_Stats_Computing/Bios6301-main/football-values-main/2021/proj_wr21.csv')[,-(1:2)]
+```
+
+1. Show the correlation matrix of this data set. (4 points)
+
+```{r}
+(rho.dt=cor(dt)) # correlation
+```
+
+1. Generate a data set with 30 rows that has a similar correlation
+structure.  Repeat the procedure 1,000 times and return the mean
+correlation matrix. (10 points)
+
+```{r}
+# codes are cited from lecture 9
+library(MASS)
+set.seed(925)
+
+# Assume the joint distribution is normal 
+means.dt = colMeans(dt)
+vcov.dt = var(dt)
+(rho.dt = cor(dt))
+
+# Generate a data set with similar correlation structure
+dt.sim = mvrnorm(30, mu = means.dt, Sigma = vcov.dt)
+cor(dt.sim)
+
+# repeat 1000 times.
+rho.sim = 0
+loops=1e3
+
+for (i in 1:loops) {
+      dt.sim = mvrnorm(30, mu = means.dt, Sigma = vcov.dt)
+      rho.sim = rho.sim+cor(dt.sim)/loops
+}
+# mean correlation matrix
+rho.sim
+```
+
+### Question 3 ###
+
+**21 points**
+
+Here's some code:
+
+```{r}
+nDist <- function(n = 100) {
+    df <- 10
+    prob <- 1/3
+    shape <- 1
+    size <- 16
+    list(
+        beta = rbeta(n, shape1 = 5, shape2 = 45),
+        binomial = rbinom(n, size, prob),
+        chisquared = rchisq(n, df),
+        exponential = rexp(n),
+        f = rf(n, df1 = 11, df2 = 17),
+        gamma = rgamma(n, shape),
+        geometric = rgeom(n, prob),
+        hypergeometric = rhyper(n, m = 50, n = 100, k = 8),
+        lognormal = rlnorm(n),
+        negbinomial = rnbinom(n, size, prob),
+        normal = rnorm(n),
+        poisson = rpois(n, lambda = 25),
+        t = rt(n, df),
+        uniform = runif(n),
+        weibull = rweibull(n, shape)
+    )
+}
+```
+
+1. What does this do? (3 points)
+
+    ```{r}
+    round(sapply(nDist(500), mean), 2)
+    ```
+    
+    ```
+    It gives the mean of the 500 random generated samples from each distrition, and rounds off these values to two decimal places.
+    ```
+
+1. What about this? (3 points)
+
+    ```{r}
+    sort(apply(replicate(20, round(sapply(nDist(10000), mean), 2)), 1, sd))
+    ```
+    
+    ```
+    First, for each distribution, it randomly sampled 10000 samples and calculated their means (w/ two decimal places), and repeated this process for 20 times; Then it calculated the standard deviation of the 20 means of each distribution, and arrange these standard deviations in an numerically increasing order.
+    ```
+
+    In the output above, a small value would indicate that `N=10,000` would provide a sufficent sample size as to estimate the mean of the distribution. Let's say that a value *less than 0.02* is "close enough".
+
+1. For each distribution, estimate the sample size required to simulate the distribution's mean. (15 points)
+
+```{r, eval = FALSE}
+# suff_size: used to store sufficient sample size for each distribution.
+suff_size = numeric(15)
+suff_sd = numeric(15) 
+names(suff_size) = names(sapply(nDist(1000), mean)) 
+names(suff_sd) = names(sapply(nDist(1000), mean)) 
+#dist: indicator of distribution
+# 1 for beta, 2 for binomial, ..., 15 for weibull
+set.seed(925)
+for (dist in 1:15){  
+    n = 0
+    std_dev = Inf
+    if (dist %in% c(1,14)){ # use different increments for different distribution.
+        gap = 5
+    }else if(dist %in% c(5,15,11,4,8,6)){
+        gap = 200
+    }else if(dist %in% c(13,2,7)){
+        gap = 1000
+    }else{
+        gap = 3000
+    }
+    while (std_dev>=.02){
+        n = n+ gap
+        sample_sd = apply(replicate(20, round(sapply(nDist(n), mean), 2)), 1, sd) 
+        std_dev = sample_sd[dist] 
+    }
+    suff_size[dist] = n
+    suff_sd[dist] = std_dev
+}
+suff_size
+suff_sd
+```
+
+Don't worry about being exact. It should already be clear that N < 10,000 for many of the distributions. You don't have to show your work. Put your answer to the right of the vertical bars (`|`) below.
+
+distribution|N
+---|---
+beta|5
+binomial|7000
+chisquared|33000
+exponential|3400
+f|1000
+gamma|1400
+geometric|13000
+hypergeometric|3800
+lognormal|9000
+negbinomial|165000 
+normal|1800  
+poisson|57000
+t|3000
+uniform|160
+weibull|2400

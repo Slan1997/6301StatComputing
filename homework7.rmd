@@ -171,7 +171,7 @@ grep('^col|eck$', a, value = T)
 5. Find the number of words that contain 4 or more adjacent consonants. Assume "y" is always a consonant.
 
 ```{r}
-grep('[^aeiou]{4,}', a, value = T)
+length(grep('[^aeiou]{4,}', a, value = T))
 ```
 
 6. Return all words with a "q" that isn't followed by a "ui".

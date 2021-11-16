@@ -47,7 +47,7 @@ methods(,class(dat)[3])
 3. If you call `print(dat)`, what print method is being dispatched? (1 point)
 
 ```
-print.tbl
+print.tbl_df
 ```
 
 4. Set the class of `dat` to be a data.frame. (1 point)
@@ -160,8 +160,9 @@ plot.medicalRecord <- function(mr){
       pivot_longer(5:7,names_to = 'type',values_to = "measurements")
     p = ggplot(y,aes(x=date_of_admission, 
                      y=measurements,color=type)) +
-      geom_point(aes(shape=type)) +
-      geom_line() + theme_bw()  
+      geom_point(aes(shape=type)) + 
+      geom_line() + theme_bw()  + 
+      facet_grid(type ~ .,scales = "free")
     print(p)
 }
 plot(mr)
@@ -182,7 +183,7 @@ for (i in 1:10){
 }
 names(cohort) = name
 class(cohort) = 'cohort'
-head(cohort)
+cohort[[5]]
 mean.cohort = function(cohort){
   lapply(cohort,function(x){
     class(x) ='medicalRecord'
